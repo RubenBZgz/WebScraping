@@ -3,7 +3,7 @@ import json
 # import jsonpickle
 import scrapy
 
-from ..items import MydomainItem, Videogames, Videogames2
+# from ..items import MydomainItem, Videogames, Videogames2
 
 # from json import JSONEncoder
 
@@ -57,6 +57,7 @@ class Ggdeals4Spider(scrapy.Spider):
                 game.xpath(".//a[contains(@class, 'shop-link')]/@href").getall()
             )
             providerLink = "gg.deals" + providerLink
+            print(providerTitle)
 
             data = {}
             data["title"] = providerTitle
@@ -78,9 +79,9 @@ class Ggdeals4Spider(scrapy.Spider):
             # DATOS = []
             providerData.append(json_data)
             # print("HOLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        print("===============================")
-        print("PROVIDER DATA")
-        print(providerData)
+        # print("===============================")
+        # print("PROVIDER DATA")
+        # print(providerData)
 
         # game-info-title-wrapper
 
@@ -95,7 +96,16 @@ class Ggdeals4Spider(scrapy.Spider):
             title = "".join(
                 game.xpath(".//a[contains(@class, 'game-info-title')]/text()").getall()
             )
-            image = "".join(game.xpath(".//picture//img/@src").getall())
+            # image = "".join(game.xpath(".//picture//img/@src").getall())
+            image = "".join(
+                game.xpath(
+                    ".//picture//source[contains(@height, '143')]/@srcset"
+                ).getall()
+            )
+            indexStart = image.find(",")
+            indexEnd = image.find(" 2x")
+            image = image[indexStart:indexEnd]
+            # print(image[indexStart:indexEnd])
             releaseDate = "".join(
                 game.xpath(
                     ".//div[contains(@class, 'tag-release-date')]//span[contains(@class, 'value')]/text()"
@@ -177,7 +187,7 @@ class Ggdeals4Spider(scrapy.Spider):
             "//a[contains(@aria-label, 'Last page')]/text()"
         ).getall()
         # ultima_pagina = max([*map(int, paginas)])
-        ultima_pagina = 4
+        ultima_pagina = 2
         current_url = response.url
         indexType = response.url.index("=") + 1
         indexPage = response.url.index("=", indexType) + 1
@@ -192,18 +202,54 @@ class Ggdeals4Spider(scrapy.Spider):
 
         # BUCLE PARA ENTRAR A CADA JUEGO
         y = 0
+        # print(links)
+        # print(len(links))
         for game in links:
             # print(f"gg.deals{game}")
-            if y == 0:
-                y = 1
-                yield response.follow(f"{game}", callback=self.parse_games)
-            else:
-                break
 
+            # print(f"{game}")
+            # yield response.follow(f"{game}", callback=self.parse_games)
+            y = y + 1
+            yield response.follow(f"{game}", callback=self.parse_games)
+            # if y == 0:
+            #     y = y + 1
+            #     yield response.follow(f"{game}", callback=self.parse_games)
+            # else:
+            #     break
         if current_page < ultima_pagina:
             print(f"PAGINA ACTUAL {current_page}")
             yield response.follow(f"{base_url}{current_page+1}")
 
+        # # Quito las comillas simples ', no son necesarias
+        # json_data = str(jsonFile)
+        # json_data = json_data.replace("'{", " {")
+        # json_data = json_data.replace("}'", "}")
+        # json_data = json_data.replace("\\", "")
+
+        # with open("VideogamesJSON.json", "w") as outfile:
+        #     outfile.write(json_data)
+
+        # # print("==========================")
+        # # print("PROVIDER DATA 2")
+        # # print(providerData)
+
+        # json_data = str(providerData)
+        # json_data = json_data.replace("'{", " {")
+        # json_data = json_data.replace("}'", "}")
+        # json_data = json_data.replace("\\", "")
+
+        # with open("ProvidersJSON.json", "w") as outfile:
+        #     outfile.write(json_data)
+
+        # scrapy shell "https://gg.deals/games/?type=1&page=1"
+        # scrapy crawl ggdeals2
+
+        pass
+
+    def closed(self, reason):
+        # will be called when the crawler process ends
+        # any code
+        # do something with collected data
         # Quito las comillas simples ', no son necesarias
         json_data = str(jsonFile)
         json_data = json_data.replace("'{", " {")
@@ -213,10 +259,6 @@ class Ggdeals4Spider(scrapy.Spider):
         with open("VideogamesJSON.json", "w") as outfile:
             outfile.write(json_data)
 
-        # print("==========================")
-        # print("PROVIDER DATA 2")
-        # print(providerData)
-
         json_data = str(providerData)
         json_data = json_data.replace("'{", " {")
         json_data = json_data.replace("}'", "}")
@@ -224,8 +266,3 @@ class Ggdeals4Spider(scrapy.Spider):
 
         with open("ProvidersJSON.json", "w") as outfile:
             outfile.write(json_data)
-
-        # scrapy shell "https://gg.deals/games/?type=1&page=1"
-        # scrapy crawl ggdeals2
-
-        pass
